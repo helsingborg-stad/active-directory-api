@@ -10,7 +10,7 @@
     RewriteRule ^(.*)$ index.php?e=$1 [L]
 </ifModule>
 
-<Files ./configuration.json>
+<Files ./configuration.php>
     Order Allow,Deny
     Deny from all
 </Files>
