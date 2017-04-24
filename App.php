@@ -29,9 +29,9 @@ class App
             \AdApi\Helper\Json::error('Missing connection args: ' . implode(', ', $this->getMissingConnectionArgs($args)));
         }
 
-
         if (!isset($args['username']) || !isset($args['password'])) {
-            $entityBody = json_decode(stripslashes(file_get_contents('php://input')));
+
+            $entityBody = json_decode(stripslashes($this->decodeUTF(file_get_contents('php://input'))));
 
             if (!isset($entityBody->username) || !isset($entityBody->password)) {
                 \AdApi\Helper\Json::error('Invalid credentials');
@@ -122,6 +122,29 @@ class App
     public function getMissingArgs($args)
     {
         return array_keys(array_diff_key(array_flip($this->requiredArgs), $args));
+    }
+
+    /**
+     * Utf-16 decode
+     * @param  string $str  What to decode
+     * @param  string $type Type of input
+     * @return string       The decoded string
+     */
+    public function decodeUTF($str, $type = 'utf16')
+    {
+        if ($type == 'utf8') {
+            $str = preg_replace_callback('/\\\\u([0-9a-fA-F]{4})/', function ($match) {
+                return mb_convert_encoding(pack('H*', $match[1]), 'UTF-8', 'UTF-16BE');
+            }, $str);
+        } elseif ($type == 'utf16') {
+            $str = preg_replace_callback('/\\\\u([0-9a-fA-F]{4})/', function ($match) {
+                return mb_convert_encoding(pack('H*', $match[1]), 'UTF-8', 'UCS-2BE');
+            }, $str);
+        } else {
+            die("Unknow decode type (only UTF8 & UTF16 supported.)");
+        }
+
+        return $str;
     }
 
     /**
