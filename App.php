@@ -33,12 +33,12 @@ class App
 
             $entityBody = json_decode(stripslashes($this->decodeUTF(file_get_contents('php://input'))));
 
-            if (!isset($entityBody->username) || !isset($entityBody->password)) {
+            $args['username'] = isset($entityBody->username) ? $entityBody->username : (isset($_REQUEST['username']) ? $_REQUEST['username'] : "");
+            $args['password'] = isset($entityBody->password) ? $entityBody->password : (isset($_REQUEST['password']) ? $_REQUEST['password'] : "");
+
+            if (empty($args['username']) || empty($args['password'])) {
                 \AdApi\Helper\Json::error('Invalid credentials');
             }
-
-            $args['username'] = $entityBody->username;
-            $args['password'] = $entityBody->password;
         }
 
         self::$baseDn = $args['base_dn'];
