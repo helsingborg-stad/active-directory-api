@@ -4,6 +4,54 @@ namespace AdApi\Endpoint;
 
 class User extends \AdApi\Endpoint
 {
+
+    /**
+     * Get usernames for all users
+     * @return array The usernames
+     */
+    public function index($cookie = null, $results = array()) : array
+    {
+        $results['count'] = 0;
+        do {
+
+            //Init pagination
+            @ldap_control_paged_result(\AdApi\App::$ad, 500, true, $cookie);
+
+            //Do search / get entries
+            $search     = @ldap_search(\AdApi\App::$ad, \AdApi\App::$baseDn, "(&(objectCategory=person)(samaccountname=*))", array('samaccountname'));
+            $entries    = @ldap_get_entries(\AdApi\App::$ad, $search);
+
+            //Append to full count
+            $entries['count'] += $results['count'];
+
+            //Merge to full result array
+            $results = array_merge($results, $entries);
+
+            //Next page
+            @ldap_control_paged_result_response(\AdApi\App::$ad, $search, $cookie);
+
+        } while ($cookie !== null && $cookie != '');
+
+        //Only keep usernames in an array
+        $return = array();
+        foreach ($results as $result) {
+            if (isset($result['samaccountname']) && isset($result['samaccountname'][0]) && !empty($result['samaccountname'][0])) {
+                $return[] = strtolower($result['samaccountname'][0]);
+            }
+        }
+
+        //Clean array
+        $return = array_filter(array_unique($return));
+
+        //Return error if empty
+        if (empty($return)) {
+            \AdApi\Helper\Json::error('Did not find any matching user(s)');
+        }
+
+        return $return;
+
+    }
+
     /**
      * Get current users userinfo
      * @param  array  $fields   Fields to get (null for default)
