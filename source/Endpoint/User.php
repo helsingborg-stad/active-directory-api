@@ -32,7 +32,9 @@ class User extends \AdApi\Endpoint
         $return = array();
         foreach ($results as $result) {
             if (isset($result['samaccountname']) && isset($result['samaccountname'][0]) && !empty($result['samaccountname'][0])) {
-                $return[] = strtolower($result['samaccountname'][0]);
+                if (\AdApi\Helper\Filter::validUserName($result['samaccountname'][0])) {
+                    $return[] = strtolower($result['samaccountname'][0]);
+                }
             }
         }
 
@@ -121,10 +123,21 @@ class User extends \AdApi\Endpoint
             'userprincipalname',
         );
 
+
         $search = ldap_search(\AdApi\App::$ad, \AdApi\App::$baseDn, $filter, $fields);
         $results = ldap_get_entries(\AdApi\App::$ad, $search);
 
-        if ($results['count'] === 0) {
+        //Remove prohibited accounts
+        $return = array();
+        foreach ($results as $result) {
+            if (isset($result['samaccountname']) && isset($result['samaccountname'][0]) && !empty($result['samaccountname'][0])) {
+                if (\AdApi\Helper\Filter::validUserName($result['samaccountname'][0])) {
+                    $return[] = strtolower($result['samaccountname'][0]);
+                }
+            }
+        }
+
+        if (empty($return)) {
             \AdApi\Helper\Json::error('Did not find any matching user(s)');
         }
 

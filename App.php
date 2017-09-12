@@ -9,6 +9,7 @@ class App
     public static $ad;
     public static $baseDn;
     public static $accountSuffix;
+    public static $invalidUserNamePattern;
 
     public static $currentUser;
 
@@ -43,6 +44,17 @@ class App
 
         self::$baseDn = $args['base_dn'];
         self::$accountSuffix = $args['account_suffix'];
+
+        //Define invalid username patterns
+        if (!isset($args['invalid_username_patterns'])) {
+            $args['invalid_username_patterns'] = array(
+                '/^s([a-z]{4})([0-9]{4})/i',
+                '/^([a-z]{3})([0-9]{4})/i',
+                '/^([a-z]{6})([0-9]{4})/i',
+                '/^([0-9]{6})([a-z]{2})/i',
+            );
+        }
+        self::$invalidUserNamePattern = $args['invalid_username_patterns'];
 
         // Add suffix to username
         if (substr($args['username'], -strlen($args['account_suffix'])) !== $args['account_suffix']) {
