@@ -11,18 +11,14 @@ class User extends \AdApi\Endpoint
      */
     public function index($cookie = null, $results = array()) : array
     {
-        $results['count'] = 0;
         do {
 
             //Init pagination
             @ldap_control_paged_result(\AdApi\App::$ad, 500, true, $cookie);
 
             //Do search / get entries
-            $search     = @ldap_search(\AdApi\App::$ad, \AdApi\App::$baseDn, "(&(objectCategory=person)(samaccountname=*))", array('samaccountname'));
+            $search     = @ldap_search(\AdApi\App::$ad, \AdApi\App::$baseDn, "(&(objectCategory=person)(samaccountname=*)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))", array('samaccountname'));
             $entries    = @ldap_get_entries(\AdApi\App::$ad, $search);
-
-            //Append to full count
-            $entries['count'] += $results['count'];
 
             //Merge to full result array
             $results = array_merge($results, $entries);
@@ -99,7 +95,7 @@ class User extends \AdApi\Endpoint
             $filterQuery = '(|' . $filterQuery . ')';
         }
 
-        $filter = '(&(objectCategory=person)' . $filterQuery . ')';
+        $filter = '(&(objectCategory=person)' . $filterQuery . '(!(userAccountControl:1.2.840.113556.1.4.803:=2)))';
 
         $fields = array(
             'samaccountname',
@@ -119,7 +115,10 @@ class User extends \AdApi\Endpoint
             'mobile',
             'physicaldeliveryofficename',
             'streetaddress',
-            'postalcode'
+            'postalcode',
+            'useraccountcontrol',
+            'description',
+            'userprincipalname',
         );
 
         $search = ldap_search(\AdApi\App::$ad, \AdApi\App::$baseDn, $filter, $fields);
