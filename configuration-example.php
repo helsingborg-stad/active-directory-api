@@ -13,5 +13,7 @@
             '/^([a-z]{6})([0-9]{4})/i',
             '/^([0-9]{6})([a-z]{2})/i',
             '/adintegration/i', // You want to disable integration etc from bulk import
-        )
+        ),
+        'custom_filter' => '(!(extensionattribute12=FunctionalAccount))',
+        'number_of_extension_attributes' => 12
     );

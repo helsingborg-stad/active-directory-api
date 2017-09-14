@@ -17,7 +17,7 @@ class User extends \AdApi\Endpoint
             @ldap_control_paged_result(\AdApi\App::$ad, 500, true, $cookie);
 
             //Do search / get entries
-            $search     = @ldap_search(\AdApi\App::$ad, \AdApi\App::$baseDn, "(&(objectCategory=person)(samaccountname=*)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))", array('samaccountname'));
+            $search     = @ldap_search(\AdApi\App::$ad, \AdApi\App::$baseDn, "(&(objectCategory=person)(samaccountname=*)" . \AdApi\App::$customFilter . "(!(userAccountControl:1.2.840.113556.1.4.803:=2)))", array('samaccountname'));
             $entries    = @ldap_get_entries(\AdApi\App::$ad, $search);
 
             //Merge to full result array
@@ -97,7 +97,7 @@ class User extends \AdApi\Endpoint
             $filterQuery = '(|' . $filterQuery . ')';
         }
 
-        $filter = '(&(objectCategory=person)' . $filterQuery . '(!(userAccountControl:1.2.840.113556.1.4.803:=2)))';
+        $filter = '(&(objectCategory=person)' . \AdApi\App::$customFilter  . $filterQuery . '(!(userAccountControl:1.2.840.113556.1.4.803:=2)))';
 
         $fields = array(
             'samaccountname',
@@ -113,16 +113,20 @@ class User extends \AdApi\Endpoint
             'lastlogon',
             'sn',
             'manager',
-            'extensionattribute3',
             'mobile',
             'physicaldeliveryofficename',
             'streetaddress',
             'postalcode',
             'useraccountcontrol',
             'description',
-            'userprincipalname',
+            'userprincipalname'
         );
 
+        if(!is_null(\AdApi\App::$numberOfExtensionAttr) && !empty(\AdApi\App::$numberOfExtensionAttr)) {
+            for ($x = 1; $x <= \AdApi\App::$numberOfExtensionAttr; $x++) {
+                $fields[] = "extensionAttribute" . $x;
+            }
+        }
 
         $search = ldap_search(\AdApi\App::$ad, \AdApi\App::$baseDn, $filter, $fields);
         $results = ldap_get_entries(\AdApi\App::$ad, $search);

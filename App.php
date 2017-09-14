@@ -10,6 +10,8 @@ class App
     public static $baseDn;
     public static $accountSuffix;
     public static $invalidUserNamePattern;
+    public static $customFilter;
+    public static $numberOfExtensionAttr;
 
     public static $currentUser;
 
@@ -44,6 +46,12 @@ class App
 
         self::$baseDn = $args['base_dn'];
         self::$accountSuffix = $args['account_suffix'];
+
+        //Defines custom filters
+        self::$numberOfExtensionAttr = isset($args['number_of_extension_attributes']) ? $args['number_of_extension_attributes'] : null;
+
+        //Defines custom filters
+        self::$customFilter = isset($args['custom_filter']) ? $args['custom_filter'] : "";
 
         //Define invalid username patterns
         if (!isset($args['invalid_username_patterns'])) {
