@@ -18,7 +18,7 @@ $configuration = array (
             '/^([0-9]{6})([a-z]{2})/i',
             '/adintegration/i', // You want to disable integration etc from bulk import
         ), // Remove these user patterns. Use php regular expressions. 
-        'custom_filter' => '(!(extensionattribute12=FunctionalAccount))', // Filter all querys with this filter. Use a normal ldap syntax here. 
+        'custom_filter' => '(objectClass=user)(!(extensionattribute12=FunctionalAccount))(!(extensionattribute12=SpecialAccount))(mail=*)(!(lastlogon=0))', // Filter all querys with this filter. Use a normal ldap syntax here. 
         'number_of_extension_attributes' => 12 // The number of extension attributes that sould be displayed 
     );
 ```
