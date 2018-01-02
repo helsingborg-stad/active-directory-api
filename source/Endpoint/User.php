@@ -25,7 +25,6 @@ class User extends \AdApi\Endpoint
 
             //Next page
             @ldap_control_paged_result_response(\AdApi\App::$ad, $search, $cookie);
-
         } while ($cookie !== null && $cookie != '');
 
         //Only keep usernames in an array
@@ -47,7 +46,6 @@ class User extends \AdApi\Endpoint
         }
 
         return $return;
-
     }
 
     /**
@@ -67,8 +65,23 @@ class User extends \AdApi\Endpoint
      */
     public function get($q)
     {
+        //Extract
         $queries = func_get_args();
-        return $this->search($queries);
+
+        //Get local cache if is within n seconds
+        $cache = new \AdApi\Helper\Cache($q);
+        if (!is_null($response = $cache->get())) {
+            return $response;
+        }
+
+        //Fetch response
+        $response = $this->search($queries);
+
+        //Cache response
+        $cache->store($response);
+
+        //Return
+        return $response;
     }
 
     /**
@@ -122,14 +135,14 @@ class User extends \AdApi\Endpoint
             'userprincipalname'
         );
 
-        if(!is_null(\AdApi\App::$numberOfExtensionAttr) && !empty(\AdApi\App::$numberOfExtensionAttr)) {
+        if (!is_null(\AdApi\App::$numberOfExtensionAttr) && !empty(\AdApi\App::$numberOfExtensionAttr)) {
             for ($x = 1; $x <= \AdApi\App::$numberOfExtensionAttr; $x++) {
                 $fields[] = "extensionAttribute" . $x;
             }
         }
 
-        $search = ldap_search(\AdApi\App::$ad, \AdApi\App::$baseDn, $filter, $fields);
-        $results = ldap_get_entries(\AdApi\App::$ad, $search);
+        $search     = ldap_search(\AdApi\App::$ad, \AdApi\App::$baseDn, $filter, $fields);
+        $results    = ldap_get_entries(\AdApi\App::$ad, $search);
 
         //Remove prohibited accounts
         $return = array();
@@ -147,6 +160,12 @@ class User extends \AdApi\Endpoint
 
         return $this->formatUserdata($results);
     }
+
+    /**
+     * Format the output to be more logic & filter out irellevant data
+     * @param  array    Userdata array
+     * @return array    Userdata array formatted
+     */
 
     public function formatUserdata($users)
     {
