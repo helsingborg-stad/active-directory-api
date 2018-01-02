@@ -23,6 +23,9 @@ class Cache
 
         //Create cache filename
         $this->filename = $this->cacheFolder . $this->generateCacheFilename();
+
+        //Clean old cache files
+        $this->cleanStaleCache();
     }
 
     /**
@@ -73,13 +76,13 @@ class Cache
     }
 
     /**
-     * Concatinate variables to create a full filename
+     * Remove stale cache files
      * @return void
      */
-    public function cleanOldFiles()
+    public function cleanStaleCache()
     {
         foreach (glob($this->cacheFolder . "*") as $file) {
-            if ((substr($file, -5) == ".json")(time() - filectime($file) > $this->ttl)) {
+            if ((substr($file, -5) == ".json") && (time() - filectime($file) > $this->ttl)) {
                 unlink($file);
             }
         }
