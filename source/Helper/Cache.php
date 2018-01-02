@@ -9,6 +9,7 @@ class Cache
     private $cacheFolder = __DIR__ . "/../../cache/";
     private $fileSeparator = ".";
     private $fileExtension = "json";
+    private $ttl = (60*10);
 
     /**
      * Setup required parameters for the class to work propoply
@@ -41,7 +42,7 @@ class Cache
     public function get()
     {
         if (file_exists($this->filename)) {
-            if (date("U", filectime($this->filename) >= time() - (60*10))) {
+            if (date("U", filectime($this->filename) >= time() - ($this->ttl))) {
                 return json_decode(file_get_contents($this->filename));
             }
         }
@@ -63,11 +64,24 @@ class Cache
     }
 
     /**
-     * CConcatinate variables to create a full filename
+     * Concatinate variables to create a full filename
      * @return string
      */
     public function generateCacheFilename()
     {
         return $this->cacheKey . $this->fileSeparator . $this->fileExtension;
+    }
+
+    /**
+     * Concatinate variables to create a full filename
+     * @return void
+     */
+    public function cleanOldFiles()
+    {
+        foreach (glob($this->cacheFolder . "*") as $file) {
+            if ((substr($file, -5) == ".json")(time() - filectime($file) > $this->ttl)) {
+                unlink($file);
+            }
+        }
     }
 }
