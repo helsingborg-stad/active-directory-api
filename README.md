@@ -23,7 +23,7 @@ $configuration = array (
     );
 ```
 
-Thats it! You can noe query the api with out plugin, or with the examples below. 
+Thats it! You can query the api without plugin, or with the examples below. 
 
 # Get a index of all usernames avabile (requires a master account)
 
