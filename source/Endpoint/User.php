@@ -181,7 +181,10 @@ class User extends \AdApi\Endpoint
             });
 
             foreach ($keys as $key) {
-                $userdata[$key] = $user[$key][0];
+                if (is_array($user[$key]) && isset($user[$key]['count'])) {
+                    unset($user[$key]['count']);
+                }
+                $userdata[$key] = is_array($user[$key]) ? implode(",", $user[$key]) : $user[$key];
             }
 
             $formattedData[] = $userdata;
