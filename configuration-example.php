@@ -5,7 +5,7 @@
         'account_suffix' => '@xyz.xyz.se',
         'host' => '127.0.0.0',
         'port' => 389,
-        'use_tls' => true,
+        'use_tls' => true, // Upgrades connection to TLS if port is 389. Ignore certificate errors if port is 636. 
         'network_timeout' => 5,
         'invalid_username_patterns' => array(
             '/^s([a-z]{4})([0-9]{4})/i',

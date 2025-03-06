@@ -2,6 +2,7 @@
 
 namespace AdApi;
 
+use Exception;
 class Server
 {
     private $host;
@@ -31,9 +32,15 @@ class Server
     {
         \AdApi\App::debugLog('Trying to connect');
 
+        // Validate port number
+        if(in_array($this->port, [389, 636]) === false) {
+            \AdApi\App::debugLog('Validating port number');
+            \AdApi\Helper\Json::error('Invalid port number. Please use 389 for ldap and 636 for ldaps.');
+        }
+
         // Connect to the ldap server
         try {
-            \AdApi\App::$ad = ldap_connect($this->host, $this->port);
+            \AdApi\App::$ad = ldap_connect((($this->port == 636) ? 'ldaps' : 'ldap') . "://" . $this->host .":". $this->port);
         } catch (Exception $e) {
             \AdApi\Helper\Json::error('Could not connect to the ldap server. Please make sure that you are using correct server details.');
         }
@@ -44,8 +51,13 @@ class Server
         ldap_set_option(\AdApi\App::$ad, LDAP_OPT_NETWORK_TIMEOUT, $this->networkTimeout);
 
         // Start tls if wanted
-        if ($this->useTls === true) {
+        if ($this->useTls === true && $this->port == 389) {
             ldap_start_tls(\AdApi\App::$ad);
+        }
+
+        // Ignore certificate errors if wanted
+        if ($this->useTls === false && $this->port == 636) {
+            ldap_set_option(NULL, LDAP_OPT_X_TLS_REQUIRE_CERT, LDAP_OPT_X_TLS_NEVER);
         }
 
         \AdApi\App::debugLog('Trying to authenticate');
