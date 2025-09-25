@@ -7,45 +7,101 @@ class User extends \AdApi\Endpoint
 
     /**
      * Get usernames for all users
+     *
+     * @param string|null $cookie LDAP paging cookie
+     * @param array $results Accumulated results
      * @return array The usernames
      */
-    public function index($cookie = null, $results = array()) : array
+    public function index(?string $cookie = null, array $results = []) : array
     {
-        do {
+        try {
+            $pageSize = 500;
+            $baseDn   = \AdApi\App::$baseDn;
+            $filter   = "(&(objectCategory=person)(samaccountname=*)"
+                    . \AdApi\App::$customFilter
+                    . "(!(userAccountControl:1.2.840.113556.1.4.803:=2)))";
+            $attrs    = ['samaccountname'];
 
-            //Init pagination
-            @ldap_control_paged_result(\AdApi\App::$ad, 500, true, $cookie);
+            do {
+                // Add paged results control
+                $controls = [
+                    [
+                        'oid'        => LDAP_CONTROL_PAGEDRESULTS,
+                        'iscritical' => true,
+                        'value'      => [
+                            'size'   => $pageSize,
+                            'cookie' => $cookie ?? '',
+                        ],
+                    ],
+                ];
 
-            //Do search / get entries
-            $search     = @ldap_search(\AdApi\App::$ad, \AdApi\App::$baseDn, "(&(objectCategory=person)(samaccountname=*)" . \AdApi\App::$customFilter . "(!(userAccountControl:1.2.840.113556.1.4.803:=2)))", array('samaccountname'));
-            $entries    = @ldap_get_entries(\AdApi\App::$ad, $search);
+                // Do search
+                $search = ldap_search(
+                    \AdApi\App::$ad,
+                    $baseDn,
+                    $filter,
+                    $attrs,
+                    0,
+                    -1,
+                    -1,
+                    LDAP_DEREF_NEVER,
+                    $controls
+                );
 
-            //Merge to full result array
-            $results = array_merge($results, $entries);
+                if ($search === false) {
+                    $error = ldap_error(\AdApi\App::$ad);
+                    throw new \RuntimeException("LDAP search failed: {$error}");
+                }
 
-            //Next page
-            @ldap_control_paged_result_response(\AdApi\App::$ad, $search, $cookie);
-        } while ($cookie !== null && $cookie != '');
+                $entries = ldap_get_entries(\AdApi\App::$ad, $search);
+                if ($entries === false) {
+                    $error = ldap_error(\AdApi\App::$ad);
+                    throw new \RuntimeException("Failed to fetch LDAP entries: {$error}");
+                }
 
-        //Only keep usernames in an array
-        $return = array();
-        foreach ($results as $result) {
-            if (isset($result['samaccountname']) && isset($result['samaccountname'][0]) && !empty($result['samaccountname'][0])) {
-                if (\AdApi\Helper\Filter::validUserName($result['samaccountname'][0])) {
-                    $return[] = strtolower($result['samaccountname'][0]);
+                if (is_array($entries)) {
+                    $results = array_merge($results, $entries);
+                }
+
+                // Extract response controls to get new cookie
+                $errcode = $matcheddn = $errmsg = $refs = null;
+                $serverctrls = [];
+                $parse = ldap_parse_result(\AdApi\App::$ad, $search, $errcode, $matcheddn, $errmsg, $refs, $serverctrls);
+                if ($parse === false) {
+                    $error = ldap_error(\AdApi\App::$ad);
+                    throw new \RuntimeException("Failed to parse LDAP result: {$error}");
+                }
+
+                $cookie = '';
+                if (isset($serverctrls[LDAP_CONTROL_PAGEDRESULTS]['value']['cookie'])) {
+                    $cookie = $serverctrls[LDAP_CONTROL_PAGEDRESULTS]['value']['cookie'];
+                }
+            } while (!empty($cookie));
+
+            // Only keep usernames in an array
+            $return = [];
+            foreach ($results as $result) {
+                if (!empty($result['samaccountname'][0])) {
+                    if (\AdApi\Helper\Filter::validUserName($result['samaccountname'][0])) {
+                        $return[] = strtolower($result['samaccountname'][0]);
+                    }
                 }
             }
+
+            // Clean array
+            $return = array_values(array_filter(array_unique($return)));
+
+            // Return error if empty
+            if (empty($return)) {
+                \AdApi\Helper\Json::error('Did not find any matching user(s)');
+            }
+
+            return $return;
+
+        } catch (\Throwable $e) {
+            \AdApi\Helper\Json::error($e->getMessage());
+            return []; // fallback to satisfy return type
         }
-
-        //Clean array
-        $return = array_filter(array_unique($return));
-
-        //Return error if empty
-        if (empty($return)) {
-            \AdApi\Helper\Json::error('Did not find any matching user(s)');
-        }
-
-        return $return;
     }
 
     /**
